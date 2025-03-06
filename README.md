@@ -2,16 +2,19 @@ using System;
 using System.Drawing;
 using System.Windows.Forms;
 
-namespace BouncingTimer
+namespace SmoothBouncingClock
 {
-    public partial class BouncingTimerForm : Form
+    public partial class SmoothBouncingClockForm : Form
     {
+        private Label timeLabel;
         private Timer timer;
-        private int xDirection = 1; // 1 = right, -1 = left
-        private int yDirection = 1; // 1 = down, -1 = up
-        private int speed = 5; // Adjust speed as needed
+        private float xPosition;  // Use float for smoother movement
+        private float yPosition;  // Use float for smoother movement
+        private float xDirection = 1.0f; // 1 = right, -1 = left
+        private float yDirection = 1.0f; // 1 = down, -1 = up
+        private float speed = 1.5f; // Adjust speed as needed - Float Value now
 
-        public BouncingTimerForm()
+        public SmoothBouncingClockForm()
         {
             InitializeComponent();
 
@@ -21,97 +24,68 @@ namespace BouncingTimer
             this.WindowState = FormWindowState.Maximized;
             this.Cursor = Cursors.None;
             this.TopMost = true;
+            DoubleBuffered = true;
+
+            // Label settings
+            timeLabel = new Label();
+            timeLabel.ForeColor = Color.LimeGreen;
+            timeLabel.Font = new Font("Arial", 60, FontStyle.Bold);
+            timeLabel.TextAlign = ContentAlignment.MiddleCenter;
+            timeLabel.AutoSize = true;
+            this.Controls.Add(timeLabel);
+
+            // Initialize position
+            Random rand = new Random();
+            xPosition = rand.Next(0, ClientSize.Width - timeLabel.Width);
+            yPosition = rand.Next(0, ClientSize.Height - timeLabel.Height);
+            timeLabel.Location = new Point((int)xPosition, (int)yPosition);
 
             // Timer settings
             timer = new Timer();
-            timer.Interval = 30; // Faster updates for smoother animation
+            timer.Interval = 16; // ~60 FPS - Using a higher framerate
             timer.Tick += Timer_Tick;
             timer.Start();
+
+            UpdateTime();
         }
+
 
         private void Timer_Tick(object sender, EventArgs e)
         {
-            // Get the current time
-            string currentTime = DateTime.Now.ToString("HH:mm:ss");
+            // Calculate new position - Floating point calculations
+            xPosition += xDirection * speed;
+            yPosition += yDirection * speed;
 
-            // Measure the text size
-            SizeF textSize = CreateGraphics().MeasureString(currentTime, Font);
-
-            // Calculate new position
-            int newX = (int)(TextRenderer.MeasureText(currentTime, Font).Width * 0.5); // Получаем ширину текста
-            int newY = (int)(TextRenderer.MeasureText(currentTime, Font).Height * 0.5); // Получаем высоту текста
-
-            //Get screen dimensions
-            int screenWidth = Screen.PrimaryScreen.Bounds.Width;
-            int screenHeight = Screen.PrimaryScreen.Bounds.Height;
-
-
-            //Get direction of the move
-            if (newX < 0 || newX + TextRenderer.MeasureText(currentTime, Font).Width > screenWidth)
+            // Bounce off the walls
+            if (xPosition < 0 || xPosition + timeLabel.Width > this.ClientSize.Width)
             {
                 xDirection *= -1;
-
+                xPosition += xDirection * speed; //Recalculate after bounce
             }
 
-            if (newY < 0 || newY + TextRenderer.MeasureText(currentTime, Font).Height > screenHeight)
+            if (yPosition < 0 || yPosition + timeLabel.Height > this.ClientSize.Height)
             {
                 yDirection *= -1;
+                yPosition += yDirection * speed; //Recalculate after bounce
             }
 
+            // Update label position - Cast back to integer for the label's location
+            timeLabel.Left = (int)xPosition;
+            timeLabel.Top = (int)yPosition;
 
-            // Redraw the screen
-            Invalidate();
+            UpdateTime(); //Update the time
         }
 
-        protected override void OnPaint(PaintEventArgs e)
-        {
-            base.OnPaint(e);
-
-            // Get the current time
-            string currentTime = DateTime.Now.ToString("HH:mm:ss");
-
-            // Set up drawing properties
-            e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            e.Graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
-            e.Graphics.ForeColor = Color.LimeGreen; // Время, начертание
-
-            Font font = new Font("Arial", 60, FontStyle.Bold); // Шрифт, размер
-
-            SizeF textSize = CreateGraphics().MeasureString(currentTime, font);
-
-
-            // Calculate position with bounce
-            int newX = (int)(TextRenderer.MeasureText(currentTime, font).Width * 0.5); // Получаем ширину текста
-            int newY = (int)(TextRenderer.MeasureText(currentTime, font).Height * 0.5); // Получаем высоту текста
-
-
-            //Get screen dimensions
-            int screenWidth = Screen.PrimaryScreen.Bounds.Width;
-            int screenHeight = Screen.PrimaryScreen.Bounds.Height;
-
-            //Get direction of the move
-            if (newX < 0 || newX + TextRenderer.MeasureText(currentTime, font).Width > screenWidth)
-            {
-                xDirection *= -1;
-
-            }
-
-            if (newY < 0 || newY + TextRenderer.MeasureText(currentTime, font).Height > screenHeight)
-            {
-                yDirection *= -1;
-            }
-
-            e.Graphics.DrawString(currentTime, font, new SolidBrush(Color.LimeGreen), newX, newY);
-        }
 
         protected override void OnKeyPress(KeyPressEventArgs e)
         {
             Application.Exit();
         }
 
-        protected override void OnMouseDown(MouseEventArgs e)
+
+        private void UpdateTime()
         {
-            Application.Exit();
+            timeLabel.Text = DateTime.Now.ToString("HH:mm:ss");
         }
     }
 }
