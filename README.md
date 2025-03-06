@@ -8,69 +8,70 @@ namespace ClockScreenSaver
     {
         private Label timeLabel;
         private Timer timer;
+        private int xDirection = 1; // 1 = right, -1 = left
+        private int yDirection = 1; // 1 = down, -1 = up
+        private int speed = 5; // Adjust speed as needed
 
         public ClockScreenForm()
         {
             InitializeComponent();
 
-            // Настройка формы
+            // Form settings
             this.BackColor = Color.Black;
             this.FormBorderStyle = FormBorderStyle.None;
             this.WindowState = FormWindowState.Maximized;
             this.Cursor = Cursors.None;
             this.TopMost = true;
 
-            // Создание метки для отображения времени
+            // Label settings
             timeLabel = new Label();
-            timeLabel.ForeColor = Color.LimeGreen; // Цвет шрифта
-            timeLabel.Font = new Font("Arial", 60, FontStyle.Bold); // Шрифт, размер, начертание
-            timeLabel.TextAlign = ContentAlignment.MiddleCenter; // Выравнивание текста
-            timeLabel.AutoSize = false; // Важно, чтобы задать размер
+            timeLabel.ForeColor = Color.LimeGreen;
+            timeLabel.Font = new Font("Arial", 60, FontStyle.Bold);
+            timeLabel.TextAlign = ContentAlignment.MiddleCenter;
+            timeLabel.AutoSize = true;  // Let the label determine its size
             this.Controls.Add(timeLabel);
 
-            // Настройка таймера для обновления времени
+            // Timer settings
             timer = new Timer();
-            timer.Interval = 1000; // Обновлять каждую секунду
+            timer.Interval = 30; // Faster updates for smoother animation
             timer.Tick += Timer_Tick;
             timer.Start();
 
-            // Initial time display and position the label
-            UpdateTimeAndPositionLabel();
-
-            // Handle form resize to reposition the label
-            this.Resize += ClockScreenForm_Resize;
-        }
-
-
-        private void ClockScreenForm_Resize(object sender, EventArgs e)
-        {
+            // Initial position and update label
             UpdateTimeAndPositionLabel();
         }
 
-        private void UpdateTimeAndPositionLabel()
-        {
-           timeLabel.Width = this.Width;
-           timeLabel.Height = this.Height; // Make sure height is set correctly
-           timeLabel.Location = new Point(0, 0); // Cover the entire screen
-           timeLabel.Text = DateTime.Now.ToString("HH:mm:ss");
-        }
 
         private void Timer_Tick(object sender, EventArgs e)
         {
-            UpdateTimeAndPositionLabel(); // Update every tick
+            // Calculate new position
+            int newX = timeLabel.Left + xDirection * speed;
+            int newY = timeLabel.Top + yDirection * speed;
+
+            // Bounce off the walls
+            if (newX < 0 || newX + timeLabel.Width > this.ClientSize.Width)
+            {
+                xDirection *= -1;
+                newX = timeLabel.Left + xDirection * speed; // Recalculate after bounce
+            }
+
+            if (newY < 0 || newY + timeLabel.Height > this.ClientSize.Height)
+            {
+                yDirection *= -1;
+                newY = timeLabel.Top + yDirection * speed; // Recalculate after bounce
+            }
+
+            // Update label position
+            timeLabel.Left = newX;
+            timeLabel.Top = newY;
+
+            // Update the time
+            timeLabel.Text = DateTime.Now.ToString("HH:mm:ss");
         }
 
-         protected override void OnKeyPress(KeyPressEventArgs e)
-        {
-             Application.Exit();
-        }
+        //Remove all methods relating to mouse movement and clicks.
 
-         protected override void OnMouseDown(MouseEventArgs e)
-        {
-             Application.Exit();
-        }
-
-        private void ClockScreenForm_MouseMove(object sender, MouseEventArgs e)
+        protected override void OnKeyPress(KeyPressEventArgs e)
         {
             Application.Exit();
         }
